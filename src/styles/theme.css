@@ -1,0 +1,38 @@
+:root{
+  --z-teal: #00A6A6;
+  --z-dark: #231F20;
+  --z-teal-200: #82CFC3;
+  --z-mint: #DFECCD;
+  --z-gray: #555454;
+  --z-bg: #f7fbfb;
+}
+
+html, body, #app { height: 100%; }
+body {
+  background:
+    radial-gradient(1200px 600px at 20% 10%, rgba(0,166,166,.18), transparent 60%),
+    radial-gradient(900px 500px at 80% 30%, rgba(130,207,195,.25), transparent 55%),
+    linear-gradient(180deg, var(--z-bg), #ffffff);
+}
+.z-card {
+  border: 1px solid rgba(35,31,32,.06);
+  border-radius: 1.25rem;
+  box-shadow: 0 18px 55px rgba(35,31,32,.10);
+}
+.z-btn {
+  background: var(--z-teal);
+  border: none;
+}
+.z-btn:hover { filter: brightness(.95); }
+.z-link { color: var(--z-teal); text-decoration: none; }
+.z-link:hover { text-decoration: underline; }
+.z-muted { color: rgba(35,31,32,.65); }
+.z-pill {
+  background: rgba(223,236,205,.85);
+  color: var(--z-dark);
+  border: 1px solid rgba(35,31,32,.06);
+}
+.form-control:focus {
+  border-color: rgba(0,166,166,.55);
+  box-shadow: 0 0 0 .2rem rgba(0,166,166,.18);
+}
