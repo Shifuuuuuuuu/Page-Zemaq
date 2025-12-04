@@ -29,7 +29,7 @@
           <form class="vstack gap-3" @submit.prevent>
             <div>
               <label class="form-label z-muted">Nombre completo</label>
-              <input v-model.trim="form.nombre" class="form-control" placeholder="Ej: Ronal Sanhueza Lagos" @blur="validate"/>
+              <input v-model.trim="form.nombre" class="form-control" placeholder="Ej: Ronal Sanhueza Lagos" @blur="validate" />
             </div>
 
             <div>
@@ -57,7 +57,7 @@
             <div class="row g-2">
               <div class="col-12 col-md-6">
                 <label class="form-label z-muted">Duración (horas)</label>
-                <input v-model="form.horas" type="number" min="1" step="1" class="form-control" placeholder="Ej: 6" @input="validate"/>
+                <input v-model="form.horas" type="number" min="1" step="1" class="form-control" placeholder="Ej: 6" @input="validate" />
               </div>
 
               <div class="col-12 col-md-6">
@@ -98,7 +98,6 @@
           </form>
         </div>
       </div>
-
 
       <div class="col-12 col-lg-7">
         <div class="z-card p-4 p-lg-5 z-preview-wrap">
@@ -146,8 +145,6 @@
               </p>
             </div>
 
-            <div class="preview-divider"></div>
-
             <div class="preview-footer">
               <div class="preview-code">
                 <div class="small z-muted">Código de certificado</div>
@@ -159,9 +156,15 @@
                   <div class="preview-line"></div>
                   <div class="small z-muted mt-2">Firma</div>
                 </div>
-                <div class="preview-sign">
+
+                <div class="preview-sign preview-sign--jorge">
+                  <img :src="firmaJorgeUrl" class="preview-sign-img" alt="Firma Jorge Garrido" />
                   <div class="preview-line"></div>
-                  <div class="small z-muted mt-2">Firma</div>
+
+                  <div class="preview-sign-text">
+                    <div class="fw-semibold z-ink">Jorge Garrido</div>
+                    <div class="small z-muted">Gestor de Proyectos</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -175,17 +178,17 @@
 <script setup>
 import { computed, onMounted, ref } from "vue"
 import jsPDF from "jspdf"
+import QRCode from "qrcode"
+
 import logoUrl from "../assets/img/zemaq-logo.png"
+import firmaJorgeUrl from "../assets/img/firma-jorge.png"
+
 import { db } from "../firebase"
 import { doc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore"
-
-
-import QRCode from "qrcode"
 
 const loadingPdf = ref(false)
 const loadingStep = ref("")
 const saveMsg = ref("")
-
 
 const BASE_URL = "https://zemaq-electric-27.web.app"
 
@@ -250,7 +253,6 @@ const codigo = computed(() => {
   return `${String(hash).padStart(10, "0")}${String(hash * 97).padStart(10, "0")}`
 })
 
-
 const onRutInput = () => {
   form.value.rut = form.value.rut.replace(/[^0-9kK.\-]/g, "")
   validate()
@@ -290,11 +292,10 @@ function isValidRut(rut) {
   return dvCalc === dv
 }
 
-
 async function toDataURL(src) {
   const res = await fetch(src)
   const blob = await res.blob()
-  return new Promise((resolve) => {
+  return await new Promise((resolve) => {
     const reader = new FileReader()
     reader.onloadend = () => resolve(reader.result)
     reader.readAsDataURL(blob)
@@ -336,37 +337,31 @@ function addYears(date, years) {
   d.setFullYear(d.getFullYear() + years)
   return d
 }
+
 function buildCertData() {
   const ahora = new Date()
   const vigenciaAnios = 3
   const vence = addYears(ahora, vigenciaAnios)
-
-
   const verifyUrl = `${BASE_URL}/verificar?code=${encodeURIComponent(codigo.value)}`
 
   return {
     codigo: codigo.value,
     nombre: nombreParaTexto.value,
     rut: rutParaTexto.value,
-
     curso: form.value.curso,
     tipoCursoTexto: tipoCursoParaTexto.value,
-
     horas: Number(form.value.horas || 0),
     modalidad: form.value.modalidad,
     modalidadTexto: modalidadParaTexto.value,
-
     actividad: "Mixer Eléctrico",
     estado: "Aprobado",
-
     fechaTexto: form.value.fecha,
     creadoEn: serverTimestamp(),
     actualizadoEn: serverTimestamp(),
     creadoEnCliente: Timestamp.fromDate(ahora),
     venceEn: Timestamp.fromDate(vence),
     vigenciaAnios,
-
-    verifyUrl, 
+    verifyUrl,
   }
 }
 
@@ -377,11 +372,7 @@ async function guardarCertificadoEnFirestore(cert) {
 }
 
 async function makeQrDataUrl(text) {
-  return await QRCode.toDataURL(text, {
-    errorCorrectionLevel: "M",
-    margin: 0,
-    width: 300, 
-  })
+  return await QRCode.toDataURL(text, { errorCorrectionLevel: "M", margin: 0, width: 300 })
 }
 
 async function generarPdf() {
@@ -394,7 +385,7 @@ async function generarPdf() {
     loadingStep.value = "Preparando datos del certificado…"
     const cert = buildCertData()
 
-    loadingStep.value = `Guardando en Firestore (${getColeccionPorCurso(cert.curso)})…`
+    loadingStep.value = `Guardando…`
     await guardarCertificadoEnFirestore(cert)
 
     loadingStep.value = "Generando QR…"
@@ -407,7 +398,6 @@ async function generarPdf() {
 
     const cText = [17, 17, 17]
     const cMuted = [120, 120, 120]
-    const cLine = [205, 205, 205]
 
     docPdf.setFillColor(255, 255, 255)
     docPdf.rect(0, 0, pageW, pageH, "F")
@@ -418,6 +408,9 @@ async function generarPdf() {
 
     let logoData = null
     try { logoData = await toDataURL(logoUrl) } catch { logoData = null }
+
+    let firmaJorgeData = null
+    try { firmaJorgeData = await toDataURL(firmaJorgeUrl) } catch { firmaJorgeData = null }
 
     let y = topY
     const leftX = padL
@@ -518,7 +511,7 @@ async function generarPdf() {
     docPdf.setFont("helvetica", "normal")
     docPdf.setFontSize(9.5)
     docPdf.setTextColor(...cMuted)
-    y = centerMulti(
+    centerMulti(
       docPdf,
       `Se extiende certificado con vigencia por ${cert.vigenciaAnios} años desde la fecha de realización del curso.`,
       centerX,
@@ -527,28 +520,49 @@ async function generarPdf() {
       14
     )
 
-
-    const dividerY = pageH - 150
-    docPdf.setDrawColor(...cLine)
-    docPdf.setLineWidth(1)
-    docPdf.line(padL, dividerY, pageW - padR, dividerY)
+    const dividerY = pageH - 190
 
     const signLineW = 170
     const signGap = 68
     const totalW = signLineW * 2 + signGap
     const signStartX = (pageW - totalW) / 2
-    const signLineY = dividerY + 26
+    const signLineY = dividerY + 22
 
     docPdf.setDrawColor(150, 150, 150)
     docPdf.setLineWidth(1)
     docPdf.line(signStartX, signLineY, signStartX + signLineW, signLineY)
-    docPdf.line(signStartX + signLineW + signGap, signLineY, signStartX + signLineW + signGap + signLineW, signLineY)
+    docPdf.line(
+      signStartX + signLineW + signGap,
+      signLineY,
+      signStartX + signLineW + signGap + signLineW,
+      signLineY
+    )
 
     docPdf.setTextColor(...cMuted)
     docPdf.setFont("helvetica", "normal")
     docPdf.setFontSize(9)
     docPdf.text("Firma", signStartX + signLineW / 2, signLineY + 16, { align: "center" })
-    docPdf.text("Firma", signStartX + signLineW + signGap + signLineW / 2, signLineY + 16, { align: "center" })
+
+    const rightBlockX = signStartX + signLineW + signGap
+    const rightCenterX = rightBlockX + signLineW / 2
+
+    if (firmaJorgeData) {
+      const imgW = 150
+      const imgH = 54
+      const imgX = rightBlockX + 6
+      const imgY = signLineY - imgH + 8
+      docPdf.addImage(firmaJorgeData, "PNG", imgX, imgY, imgW, imgH, undefined, "FAST")
+    }
+
+    docPdf.setTextColor(...cText)
+    docPdf.setFont("helvetica", "bold")
+    docPdf.setFontSize(10)
+    docPdf.text("Jorge Garrido", rightCenterX, signLineY + 20, { align: "center" })
+
+    docPdf.setTextColor(...cMuted)
+    docPdf.setFont("helvetica", "normal")
+    docPdf.setFontSize(9)
+    docPdf.text("Gestor de Proyectos", rightCenterX, signLineY + 34, { align: "center" })
 
     const codeLabelY = pageH - 42
     const codeValueY = pageH - 24
@@ -563,16 +577,15 @@ async function generarPdf() {
     docPdf.setFontSize(10.5)
     docPdf.text(cert.codigo, padL, codeValueY, { maxWidth: 320 })
 
-
     const qrSize = 68
     const qrX = pageW - padR - qrSize
-    const qrY = pageH - 24 - qrSize 
+    const qrY = pageH - 24 - qrSize
     docPdf.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize, undefined, "FAST")
 
     docPdf.setTextColor(...cMuted)
     docPdf.setFont("helvetica", "normal")
     docPdf.setFontSize(7.8)
-    docPdf.text("Verificar", qrX + qrSize / 2, qrY + qrSize + 10, { align: "center" })
+    docPdf.text("", qrX + qrSize / 2, qrY + qrSize + 10, { align: "center" })
 
     loadingStep.value = "Descargando PDF…"
     const fileName = `Certificado - ${safeFileName(cert.nombre)} - ${form.value.fecha}.pdf`
@@ -594,12 +607,14 @@ onMounted(() => validate())
 <style scoped>
 .z-ink { color: var(--z-dark); }
 .z-preview-wrap { background: rgba(255,255,255,.88); border: 1px solid rgba(35,31,32,.06); }
+
 .z-card{
   background:#fff;
   border: 1px solid rgba(0,0,0,.08);
   border-radius: 16px;
   box-shadow: 0 12px 30px rgba(0,0,0,.06);
 }
+
 .preview-sheet{ background:#fff; padding: 26px; }
 .preview-head{ display:flex; justify-content: space-between; align-items:flex-start; gap:18px; margin-bottom: 18px; }
 .preview-logo{ width:48px; height:48px; object-fit:contain; }
@@ -609,10 +624,53 @@ onMounted(() => validate())
 .preview-subtitle{ text-align:center; font-size:13px; opacity:.65; margin-top: 6px; margin-bottom: 22px; }
 .preview-body{ max-width: 560px; margin: 0 auto; color:#111; text-align: center; }
 .preview-activity{ font-size:16px; text-decoration: underline; }
-.preview-divider{ margin-top: 22px; border-top: 1px solid rgba(0,0,0,.18); }
-.preview-footer{ display:flex; justify-content: space-between; align-items:flex-end; gap:18px; margin-top: 16px; }
+
+
+.preview-footer{
+  display:flex;
+  justify-content: space-between;
+  align-items:flex-end;
+  gap:18px;
+  margin-top: 18px; 
+}
+
 .preview-code{ min-width: 240px; }
-.preview-signs{ display:flex; gap:28px; align-items:flex-end; }
-.preview-sign{ width: 180px; text-align:center; }
+
+
+.preview-signs{
+  display:flex;
+  gap:28px;
+  align-items:flex-end;
+  min-height: 130px; 
+}
+
+.preview-sign{
+  width: 180px;
+  text-align:center;
+  position: relative;
+  padding-top: 18px; 
+}
+
 .preview-line{ height:1px; background: rgba(0,0,0,.45); }
+
+:global(.z-btn){
+  background: #00A6A6 !important;
+  border-color: #00A6A6 !important;
+}
+
+
+.preview-sign--jorge .preview-sign-img{
+  position: absolute;
+  left: 6px;
+  bottom: 46px;  
+  width: 200px;
+  height: auto;
+  opacity: .95;
+  pointer-events: none;
+}
+
+.preview-sign--jorge .preview-sign-text{
+  margin-top: 10px;
+  text-align: center;
+}
 </style>
