@@ -1,4 +1,4 @@
-/* style.css (limpio para no pelear con theme.css) */
+
 html, body, #app {
   height: 100%;
 }
@@ -8,4 +8,3 @@ body {
   overflow-x: hidden;
 }
 
-/* Importante: NO tocar display:flex en body, NO centrar #app, NO max-width aquí */

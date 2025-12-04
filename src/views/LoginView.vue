@@ -3,7 +3,6 @@
     <div class="container" style="max-width: 980px;">
       <div class="row g-4 align-items-stretch position-relative">
 
-        <!-- OVERLAY DE CARGA LOGIN -->
         <transition name="fade">
           <div v-if="verifying" class="z-overlay">
             <div class="z-overlay-card">
@@ -16,7 +15,6 @@
           </div>
         </transition>
 
-        <!-- Lado izquierdo (branding) -->
         <div class="col-12 col-lg-6">
           <div class="h-100 p-4 p-md-5 z-card d-flex flex-column justify-content-between">
             <div>
@@ -43,13 +41,11 @@
           </div>
         </div>
 
-        <!-- Lado derecho (formulario) -->
         <div class="col-12 col-lg-6">
           <div class="z-card p-4 p-md-5">
             <h1 class="h4 mb-1" style="color: var(--z-dark);">Iniciar sesión</h1>
             <p class="z-muted mb-4">Usa tu correo y contraseña.</p>
 
-            <!-- ALERTAS GENERALES -->
             <div v-if="error" class="alert alert-danger py-2 mb-3">
               {{ error }}
             </div>
@@ -94,8 +90,20 @@
                 </div>
               </div>
 
-              <!-- Link recuperar contraseña -->
-              <div class="d-flex justify-content-end">
+              <div class="d-flex align-items-center justify-content-between">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="rememberMe"
+                    v-model="rememberMe"
+                    :disabled="verifying"
+                  />
+                  <label class="form-check-label z-muted" for="rememberMe">
+                    Mantener sesión
+                  </label>
+                </div>
+
                 <button
                   type="button"
                   class="btn btn-link p-0 z-link small"
@@ -124,7 +132,6 @@
     </div>
   </div>
 
-  <!-- MODAL: RECUPERAR CONTRASEÑA -->
   <div
     class="modal fade"
     id="resetModal"
@@ -138,7 +145,13 @@
           <h5 class="modal-title" id="resetModalLabel" style="color: var(--z-dark);">
             Restablecer contraseña
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" :disabled="resetLoading"></button>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Cerrar"
+            :disabled="resetLoading"
+          ></button>
         </div>
 
         <div class="modal-body">
@@ -161,10 +174,20 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" :disabled="resetLoading">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+            :disabled="resetLoading"
+          >
             Cancelar
           </button>
-          <button type="button" class="btn z-btn text-white fw-semibold" @click="sendReset" :disabled="resetLoading">
+          <button
+            type="button"
+            class="btn z-btn text-white fw-semibold"
+            @click="sendReset"
+            :disabled="resetLoading"
+          >
             <span v-if="resetLoading" class="spinner-border spinner-border-sm me-2"></span>
             Enviar enlace
           </button>
@@ -175,10 +198,10 @@
 </template>
 
 <script setup>
-import { ref } from "vue"
+import { ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import { AuthService } from "../services/auth"
-import { sendPasswordResetEmail } from "firebase/auth"
+import { sendPasswordResetEmail, setPersistence, browserLocalPersistence, browserSessionPersistence } from "firebase/auth"
 import { auth } from "../firebase"
 import logo from "../assets/img/zemaq-logo.png"
 
@@ -192,7 +215,11 @@ const verifying = ref(false)
 const error = ref("")
 const ok = ref("")
 
-// --- Modal reset ---
+
+const rememberMe = ref(localStorage.getItem("zemaq_remember") !== "0")
+watch(rememberMe, (v) => localStorage.setItem("zemaq_remember", v ? "1" : "0"))
+
+
 const resetEmail = ref("")
 const resetLoading = ref(false)
 const resetError = ref("")
@@ -217,8 +244,17 @@ const onLogin = async () => {
 
   verifying.value = true
   try {
+
+    await setPersistence(
+      auth,
+      rememberMe.value ? browserLocalPersistence : browserSessionPersistence
+    )
+
     await AuthService.login(email.value, password.value)
+
     ok.value = "✅ Credenciales correctas. ¡Bienvenido!"
+    sessionStorage.setItem("justLoggedIn", "1")
+
     setTimeout(() => router.push("/home"), 450)
   } catch (e) {
     error.value = e?.message || "No se pudo iniciar sesión."
@@ -242,12 +278,7 @@ const sendReset = async () => {
 
   resetLoading.value = true
   try {
-    // puedes personalizar el redirect si lo necesitas
-    // const actionCodeSettings = { url: window.location.origin + "/login", handleCodeInApp: false }
-    // await sendPasswordResetEmail(auth, resetEmail.value, actionCodeSettings)
-
     await sendPasswordResetEmail(auth, resetEmail.value)
-
     resetOk.value = "✅ Listo. Te enviamos un correo con el enlace para restablecer tu contraseña."
   } catch (e) {
     const code = e?.code || ""
@@ -262,7 +293,7 @@ const sendReset = async () => {
 </script>
 
 <style scoped>
-/* Overlay */
+
 .z-overlay{
   position: absolute;
   inset: 0;
@@ -284,14 +315,12 @@ const sendReset = async () => {
   text-align: center;
 }
 
-/* Modal un poquito más pro */
 .z-modal{
   border-radius: 16px;
   border: 1px solid rgba(35,31,32,.08);
   box-shadow: 0 18px 55px rgba(35,31,32,.18);
 }
 
-/* Transición suave */
 .fade-enter-active, .fade-leave-active { transition: opacity .18s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

@@ -93,20 +93,14 @@ const loading = ref(false)
 const error = ref("")
 const ok = ref("")
 
-// ------------------------------
-// Helpers: Validaciones básicas
-// ------------------------------
 const isEmailValid = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim())
 
-// ------------------------------
-// TELÉFONO: solo + y números + formato
-// Ej: +56 9 1234 5678
-// ------------------------------
+
 const sanitizePhone = (value) => {
   let v = String(value || "")
-  // solo permite + y números
+
   v = v.replace(/[^\d+]/g, "")
-  // solo un + al inicio
+
   if (v.includes("+")) {
     v = "+" + v.replace(/\+/g, "")
   }
@@ -114,22 +108,19 @@ const sanitizePhone = (value) => {
 }
 
 const formatPhone = (value) => {
-  // formato simple: +56 9 1234 5678 (si tiene esa cantidad)
   let v = sanitizePhone(value)
   if (!v.startsWith("+")) v = "+" + v.replace(/\+/g, "")
 
-  const digits = v.replace(/\D/g, "") // solo números (sin el +)
-  // intentamos formatear como CL: 56 9 1234 5678
-  // si no alcanza, lo dejamos agrupado suavemente
+  const digits = v.replace(/\D/g, "") 
+
   if (digits.length >= 11) {
-    const cc = digits.slice(0, 2)      // 56
-    const m = digits.slice(2, 3)       // 9
-    const p1 = digits.slice(3, 7)      // 1234
-    const p2 = digits.slice(7, 11)     // 5678
+    const cc = digits.slice(0, 2)     
+    const m = digits.slice(2, 3)       
+    const p1 = digits.slice(3, 7)      
+    const p2 = digits.slice(7, 11)    
     return `+${cc} ${m} ${p1} ${p2}`.trim()
   }
 
-  // fallback: agrupa cada 3-4 para que se vea decente
   const parts = []
   let i = 0
   while (i < digits.length) {
@@ -146,11 +137,9 @@ const onTelefonoInput = (e) => {
 
 const phoneDigitsCount = (value) => sanitizePhone(value).replace(/\D/g, "").length
 
-// ------------------------------
-// RUT: solo números y K + formato + validación DV
-// ------------------------------
+
 const cleanRut = (value) => {
-  // deja solo números y K/k
+
   return String(value || "")
     .toUpperCase()
     .replace(/[^0-9K]/g, "")
@@ -163,7 +152,7 @@ const formatRut = (value) => {
   const body = v.slice(0, -1)
   const dv = v.slice(-1)
 
-  // formatear cuerpo con puntos
+
   const bodyWithDots = body
     .split("")
     .reverse()
@@ -177,7 +166,7 @@ const formatRut = (value) => {
 }
 
 const rutDv = (rutBody) => {
-  // rutBody solo números
+
   let sum = 0
   let mul = 2
   for (let i = rutBody.length - 1; i >= 0; i--) {
@@ -205,13 +194,9 @@ const onRutInput = (e) => {
 }
 
 const onRutBlur = () => {
-  // al salir del input, deja el formato bien aplicado
   rut.value = formatRut(rut.value)
 }
 
-// ------------------------------
-// Validación general: mensajes claros
-// ------------------------------
 const validateForm = () => {
   const missing = []
 
@@ -228,11 +213,10 @@ const validateForm = () => {
 
   if (!isEmailValid(email.value)) return "El correo no es válido."
 
-  // teléfono: mínimo razonable (ej CL: +56 9 1234 5678 = 11 dígitos)
   const digits = phoneDigitsCount(telefono.value)
   if (digits < 8) return "El teléfono parece incompleto. Revisa el número."
 
-  // rut válido
+
   if (!isRutValid(rut.value)) return "El RUT no es válido. Revisa el formato y el dígito verificador."
 
   if (password.value.length < 6) return "La contraseña debe tener al menos 6 caracteres."
@@ -241,9 +225,6 @@ const validateForm = () => {
   return null
 }
 
-// ------------------------------
-// Submit
-// ------------------------------
 const onRegister = async () => {
   error.value = ""
   ok.value = ""
@@ -256,7 +237,6 @@ const onRegister = async () => {
 
   loading.value = true
   try {
-    // guardamos rut y teléfono normalizados
     const telefonoFinal = telefono.value.trim()
     const rutFinal = formatRut(rut.value)
 

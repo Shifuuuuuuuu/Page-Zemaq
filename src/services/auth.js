@@ -4,6 +4,9 @@ import {
   signOut,
   updateProfile,
   onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
 } from "firebase/auth"
 
 import {
@@ -15,7 +18,6 @@ import {
 } from "firebase/firestore"
 
 import { auth, db } from "../firebase"
-
 
 const ensureProfileExists = async (uid) => {
   const snap = await getDoc(doc(db, "usuarios", uid))
@@ -34,19 +36,15 @@ const prettyError = (e) => {
   return e?.message || "Ocurrió un error."
 }
 
-// --- API ---
+
 export const AuthService = {
   async register({ nombre, correo, telefono, rut, password }) {
     try {
       if (!correo || !password) throw new Error("Faltan datos obligatorios.")
       if ((password || "").length < 6) throw new Error("La contraseña debe tener al menos 6 caracteres.")
 
-
       const cred = await createUserWithEmailAndPassword(auth, correo, password)
-
-
       await updateProfile(cred.user, { displayName: nombre })
-
 
       const perfil = {
         uid: cred.user.uid,
@@ -59,20 +57,21 @@ export const AuthService = {
       }
 
       await setDoc(doc(db, "usuarios", cred.user.uid), perfil)
-
       return { user: cred.user, perfil }
     } catch (e) {
       throw new Error(prettyError(e))
     }
   },
 
-  async login(correo, password) {
+  async login(correo, password, remember = true) {
     try {
+      const persistence = remember ? browserLocalPersistence : browserSessionPersistence
+      await setPersistence(auth, persistence)
+
       const cred = await signInWithEmailAndPassword(auth, correo, password)
 
       const perfil = await ensureProfileExists(cred.user.uid)
       if (!perfil) {
-
         throw new Error("Tu cuenta no tiene perfil en la base de datos (usuarios).")
       }
 
@@ -86,25 +85,18 @@ export const AuthService = {
     await signOut(auth)
   },
 
-
   async getProfile(uid) {
     const id = uid || auth.currentUser?.uid
     if (!id) return null
-
     const snap = await getDoc(doc(db, "usuarios", id))
     return snap.exists() ? snap.data() : null
   },
-
 
   async updateProfileData(data) {
     const uid = auth.currentUser?.uid
     if (!uid) throw new Error("No hay sesión activa.")
 
-    const payload = {
-      ...data,
-      updatedAt: serverTimestamp(),
-    }
-
+    const payload = { ...data, updatedAt: serverTimestamp() }
 
     if (data?.nombre) {
       await updateProfile(auth.currentUser, { displayName: data.nombre })

@@ -22,7 +22,6 @@ const hideSidebar = computed(() => route.path === "/login" || route.path === "/r
 </script>
 
 <style>
-/* asegura que el fondo se pinte con la variable */
 html, body { height: 100%; background: var(--z-bg); }
 .z-main { background: transparent; }
 </style>
